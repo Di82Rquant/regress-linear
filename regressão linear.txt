@@ -1,0 +1,85 @@
+require(data.table)
+require(ggplot)
+require(reshape2)
+require(corrplot)
+songs <- fread("C:/Users/Rodrigo e Sibele/Desktop/YearPredictionMSD.txt")
+names(song)
+class(songs)
+songs <- as.data.frame(songs)
+songs_train <- songs[1:463715,]
+songs_test  <- songs[463716:dim(songs)[1],]
+regressao   <- lm(V1 ~. , data = songs_train)
+sumario     <- summary(regressao)
+regressao
+sumario
+R.aquared     <- sumario$r.squared
+F.statistics  <- sumario$fstatistic
+melhores_vars <- sumario$coefficients[-1,4]<0.001
+melhores_vars
+melhores_vars <- names(melhores_vars)[melhores_vars==TRUE]
+melhores_vars
+melhores_vars <- c("V1",melhores_vars)
+songs_train_melhores <- songs_train[melhores_vars]
+
+regressao2    <-lm(V1~. , data = songs_train_melhores)
+sumario2      <- summary(regressao2)
+sumario2
+R.squared2    <- sumario2$r.squared
+F.statistics2 <- sumario2$fstatistic
+
+R.aquared
+R.squared2
+
+F.statistics
+F.statistics2
+round(F.statistics)
+round(F.statistics2)
+songs_train_melhores$predicao <- predict(regressao2,songs_train_melhores)
+songs_train_melhores$predicao
+
+songs_train_melhores$predicao <- as.integer(songs_train_melhores$predicao)
+songs_train_melhores$predicao
+
+# criando função MAPE
+
+mape <- function(actual,predicted)
+{
+  (mean(abs(actual - predicted)/predicted))*100
+  
+  
+}  
+
+map_train <- mape(songs_train_melhores$V1,songs_train_melhores$predicao)
+map_train
+
+songs_test$predicao <- predict(regressao2,songs_test)
+songs_test$predicao <- as.integer(songs_test$predicao)
+
+mape_test <- mape(songs_test$V1,songs_test$predicao)
+mape_test
+#comparando
+
+mape_test
+map_train
+
+========e========================================================================
+
+require(quantmod)    
+tickers <- c("^BVSP")
+startdate <- as.Date("2017-01-01")
+endDate   <- as.Date("2018-12-01")
+getSymbols(tickers,src = "yahoo",from = startdate, to= endDate)
+BVSP <- data.frame(BVSP)
+BVSP <- na.omit(BVSP)
+names(BVSP)<- c("open","high","low","close","volume","ajustado")
+# criação das variaveis
+
+BVSP$min <- abs(BVSP$open - BVSP$close)
+summary(BVSP$min)
+BVSP$volume <- BVSP$volume
+BVSP$rsi <- RSI(BVSP$close,14,"SMA")
+BVSP$macd <- MACD(BVSP$close,12,26,9,"SMA")
+BVSP$macd <- BVSP$macd[,1]-BVSP$macd[,2]
+BVSP$BBands <- BBands(BVSP$close,20,"SMA",2)
+BVSP$close_shift <- BVSP$close
+BVSP['close_shift']<- c(NA,head(BVSP['close_shift'],dim(BVSP)[1]-1)[[1]])
